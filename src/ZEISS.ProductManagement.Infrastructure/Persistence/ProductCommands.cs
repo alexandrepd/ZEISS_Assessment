@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ZEISS.ProductManagement.Application.Products;
 using ZEISS.ProductManagement.Domain;
 
@@ -5,6 +6,23 @@ namespace ZEISS.ProductManagement.Infrastructure.Persistence;
 
 public sealed class ProductCommands(ProductDbContext context) : IProductCommands
 {
+    public async Task<ProductResponse?> UpdateAsync(
+        int id, string? name, string? description, decimal price, CancellationToken cancellationToken)
+    {
+        var product = await context.Products.SingleOrDefaultAsync(
+            item => item.Id == id, cancellationToken);
+        if (product is null)
+        {
+            return null;
+        }
+
+        product.UpdateDetails(name, description, price);
+        await context.SaveChangesAsync(cancellationToken);
+
+        var queries = new ProductQueries(context);
+        return await queries.GetByIdAsync(id, cancellationToken);
+    }
+
     public async Task<ProductResponse> CreateAsync(
         string? name, string? description, decimal price, int stock, CancellationToken cancellationToken)
     {
