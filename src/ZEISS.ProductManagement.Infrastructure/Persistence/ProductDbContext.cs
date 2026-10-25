@@ -5,7 +5,13 @@ namespace ZEISS.ProductManagement.Infrastructure.Persistence;
 
 public sealed class ProductDbContext(DbContextOptions<ProductDbContext> options) : DbContext(options)
 {
-    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Product> Products
+    {
+        get
+        {
+            return Set<Product>();
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

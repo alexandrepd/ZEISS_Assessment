@@ -11,10 +11,12 @@ internal sealed class ProductPriceAttribute : ValidationAttribute
     {
     }
 
-    public override bool IsValid(object? value) =>
-        value is null ||
-        value is decimal price &&
-        price > 0 &&
-        price <= Product.MaxPrice &&
-        decimal.Round(price, 2) == price;
+    public override bool IsValid(object? value)
+    {
+        return value is null ||
+            value is decimal price &&
+            price > 0 &&
+            price <= Product.MaxPrice &&
+            decimal.Round(price, 2) == price;
+    }
 }

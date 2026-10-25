@@ -10,7 +10,10 @@ public sealed record CreateProductRequest
     public string? Name
     {
         get;
-        init => field = value?.Trim();
+        init
+        {
+            field = value?.Trim();
+        }
     }
 
     [StringLength(Product.MaxDescriptionLength)]

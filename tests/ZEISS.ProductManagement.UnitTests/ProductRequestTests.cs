@@ -133,20 +133,32 @@ public sealed class ProductRequestTests
         Assert.Equal(0, json.GetProperty("stock").GetInt32());
     }
 
-    public static TheoryData<decimal> ValidPrices => new()
+    public static TheoryData<decimal> ValidPrices
     {
-        0.01m,
-        1.2300m,
-        9_999_999_999_999_999.99m
-    };
+        get
+        {
+            return new TheoryData<decimal>
+            {
+                0.01m,
+                1.2300m,
+                9_999_999_999_999_999.99m
+            };
+        }
+    }
 
-    public static TheoryData<decimal> InvalidPrices => new()
+    public static TheoryData<decimal> InvalidPrices
     {
-        0m,
-        -0.01m,
-        1.001m,
-        10_000_000_000_000_000m
-    };
+        get
+        {
+            return new TheoryData<decimal>
+            {
+                0m,
+                -0.01m,
+                1.001m,
+                10_000_000_000_000_000m
+            };
+        }
+    }
 
     private static void AssertInvalidInBoth(string? name, string? description, decimal price, string member)
     {
