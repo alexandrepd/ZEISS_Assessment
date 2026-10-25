@@ -9,11 +9,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<ProductDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("Products")
-        ?? throw new InvalidOperationException("ConnectionStrings:Products is required for database operations.");
+    var connectionString = builder.Configuration.GetConnectionString("Products");
     options.UseSqlServer(connectionString);
 });
 builder.Services.AddScoped<IProductQueries, ProductQueries>();
+builder.Services.AddScoped<IProductCommands, ProductCommands>();
 
 var app = builder.Build();
 
