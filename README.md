@@ -19,15 +19,19 @@ package, with assets served locally; no custom HTML page or CDN is required.
 
 ## Current implementation status
 
-All nine product routes are declared but not implemented. Requests with valid
+`GET /api/products` reads SQL Server and returns `200 OK` with products ordered by ID,
+including available stock. An empty table returns `[]`. Database failures are
+reported as errors, never as an empty successful result.
+
+The other eight routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-No product data is read, created, updated or deleted through the API. Routes are grouped in
+No product data is created, updated or deleted through the API. Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-OpenAPI lists the intended success response schemas as the future contract, not
-as currently available behavior. Stock-operation and search/filter validation,
+For the eight reserved routes, OpenAPI lists intended success response schemas
+as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
 business operations and the remaining HTTP error contracts will be connected
 when the use cases are implemented.
 
@@ -52,7 +56,7 @@ The SQL Server EF Core model is defined in Infrastructure, including product
 column limits, check constraints and the bounded ProductIds sequence starting
 at 100005. The initial migration reserves IDs 100000-100004 for five seed products.
 Seed timestamps are fixed to keep migration generation deterministic.
-The context is not registered with the API yet.
+The context and product query implementation are registered per request in the API.
 ProductModelTests checks generated SQL without connecting to a database.
 
 The SQL Server test image is pinned by digest. It runs as linux/amd64; on Apple
@@ -74,3 +78,24 @@ The design-time factory selects SQL Server without embedding a connection string
 Generating migrations and SQL does not need a running database. For applying
 migrations manually, pass your local SQL Server connection string using the EF
 CLI `database update --connection` option; do not commit credentials.
+
+## Configure the product database
+
+Use a running SQL Server instance and set the connection string in your local
+shell (replace the example values; do not commit your actual credentials):
+
+```sh
+export ConnectionStrings__Products='Server=localhost,1433;Database=ZeissProducts;User Id=sa;Password=YOUR_LOCAL_PASSWORD;Encrypt=True;TrustServerCertificate=True'
+dotnet tool restore
+dotnet ef database update --project src/ZEISS.ProductManagement.Infrastructure --connection "$ConnectionStrings__Products"
+dotnet run --project src/ZEISS.ProductManagement.Api --launch-profile http
+```
+
+Then call `GET /api/products` in Swagger. The API does not automatically create
+the database or apply migrations on startup. `TrustServerCertificate=True` is
+for local development only; use a trusted server certificate for deployment.
+Without database configuration the documentation and reserved routes remain
+accessible, but listing products returns a safe `500` ProblemDetails response.
+
+ListProductsTests verifies the HTTP list response against a separate disposable
+SQL Server database, including seed stock values and an empty table.
