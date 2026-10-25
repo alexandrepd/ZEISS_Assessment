@@ -28,12 +28,23 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Get a product by ID (not implemented)")]
+    [EndpointSummary("Get a product by ID, including available stock")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
-    public IActionResult GetById(int id, CancellationToken cancellationToken)
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductResponse>> GetById(
+        int id, [FromServices] IProductQueries queries, CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var product = await queries.GetByIdAsync(id, cancellationToken);
+        if (product is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Product not found",
+                detail: "The requested product does not exist.");
+        }
+
+        return Ok(product);
     }
 
     [HttpPut("{id:int}")]
