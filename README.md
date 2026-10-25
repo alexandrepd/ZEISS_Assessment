@@ -21,7 +21,7 @@ package, with assets served locally; no custom HTML page or CDN is required.
 
 All nine product routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-No product data is read, created, updated or deleted. Routes are grouped in
+No product data is read, created, updated or deleted through the API. Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
@@ -42,6 +42,35 @@ dotnet test tests/ZEISS.ProductManagement.UnitTests --configuration Release
 dotnet test tests/ZEISS.ProductManagement.IntegrationTests --configuration Release
 ```
 
-The current integration tests exercise HTTP routing, DTO validation and API
-documentation using WebApplicationFactory. They do not yet test SQL Server or
-persistence.
+HTTP integration tests exercise routing, DTO validation and API documentation
+using WebApplicationFactory. ProductPersistenceTests requires a running Docker
+engine and starts a disposable SQL Server 2022 Developer container using
+Testcontainers. It applies migrations twice, checks the five seed IDs and saves
+and reloads a product with ID 100005. Containers are disposed after the test.
+
+The SQL Server EF Core model is defined in Infrastructure, including product
+column limits, check constraints and the bounded ProductIds sequence starting
+at 100005. The initial migration reserves IDs 100000-100004 for five seed products.
+Seed timestamps are fixed to keep migration generation deterministic.
+The context is not registered with the API yet.
+ProductModelTests checks generated SQL without connecting to a database.
+
+The SQL Server test image is pinned by digest. It runs as linux/amd64; on Apple
+Silicon it requires Docker AMD64 emulation. This was verified locally but is not
+an officially supported SQL Server ARM64 deployment. Docker may need internet
+access on the first test run to pull SQL Server and Testcontainers helper images.
+
+## EF Core migrations
+
+Run from the repository root:
+
+```sh
+dotnet tool restore
+dotnet ef migrations list --project src/ZEISS.ProductManagement.Infrastructure --no-connect
+dotnet ef migrations script --project src/ZEISS.ProductManagement.Infrastructure
+```
+
+The design-time factory selects SQL Server without embedding a connection string.
+Generating migrations and SQL does not need a running database. For applying
+migrations manually, pass your local SQL Server connection string using the EF
+CLI `database update --connection` option; do not commit credentials.
