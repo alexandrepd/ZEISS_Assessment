@@ -42,14 +42,19 @@ only changed metadata fields, so a stock change made after loading the entity is
 not overwritten. UpdatedAtUtc is set; CreatedAtUtc is preserved. Concurrent metadata
 updates use last-write-wins; this is not optimistic concurrency protection for metadata.
 
-The other five routes are declared but not implemented. Requests with valid
+`DELETE /api/products/{id}` permanently deletes a matching product and returns
+`204 No Content` with no response body. A missing product, including a repeated
+delete, returns `404` ProblemDetails. The delete is a single SQL statement filtered
+by primary key; it does not load the product first or reset the ID sequence.
+
+The other four routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-No product data is deleted through the API yet. Routes are grouped in
+Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-For the five reserved routes, OpenAPI lists intended success response schemas
+For the four reserved routes, OpenAPI lists intended success response schemas
 as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
 business operations and the remaining HTTP error contracts will be connected
 when the use cases are implemented.
