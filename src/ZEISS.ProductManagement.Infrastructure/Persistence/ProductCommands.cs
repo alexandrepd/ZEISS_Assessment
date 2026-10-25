@@ -6,6 +6,15 @@ namespace ZEISS.ProductManagement.Infrastructure.Persistence;
 
 public sealed class ProductCommands(ProductDbContext context) : IProductCommands
 {
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
+    {
+        var affectedRows = await context.Products
+            .Where(product => product.Id == id)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        return affectedRows > 0;
+    }
+
     public async Task<ProductResponse?> UpdateAsync(
         int id, string? name, string? description, decimal price, CancellationToken cancellationToken)
     {

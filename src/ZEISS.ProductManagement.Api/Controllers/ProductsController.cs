@@ -88,12 +88,23 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Delete a product (not implemented)")]
+    [EndpointSummary("Delete a product by ID")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult Delete(int id, CancellationToken cancellationToken)
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Delete(
+        int id, [FromServices] IProductCommands commands, CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var deleted = await commands.DeleteAsync(id, cancellationToken);
+        if (!deleted)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Product not found",
+                detail: "The requested product does not exist.");
+        }
+
+        return NoContent();
     }
 
     [HttpPost("{id:int}/decrement-stock/{quantity:int}")]
