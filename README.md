@@ -34,14 +34,22 @@ Invalid request DTOs return `400` before insertion. Database errors, including
 sequence exhaustion, currently return a safe `500` ProblemDetails response; the
 sequence never cycles back to reuse IDs.
 
-The other six routes are declared but not implemented. Requests with valid
+`PUT /api/products/{id}` updates name, description and price, returning `200 OK`
+with the current product, or `404` ProblemDetails if it does not exist. Description
+can be cleared by omitting it or sending null. Stock is not part of the update DTO;
+extra JSON fields such as stock are ignored by the default serializer. EF tracks
+only changed metadata fields, so a stock change made after loading the entity is
+not overwritten. UpdatedAtUtc is set; CreatedAtUtc is preserved. Concurrent metadata
+updates use last-write-wins; this is not optimistic concurrency protection for metadata.
+
+The other five routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-No product data is updated or deleted through the API yet. Routes are grouped in
+No product data is deleted through the API yet. Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-For the six reserved routes, OpenAPI lists intended success response schemas
+For the five reserved routes, OpenAPI lists intended success response schemas
 as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
 business operations and the remaining HTTP error contracts will be connected
 when the use cases are implemented.
