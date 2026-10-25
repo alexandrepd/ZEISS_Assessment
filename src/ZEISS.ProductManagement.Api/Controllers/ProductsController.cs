@@ -18,13 +18,28 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Create a product with initial stock (not implemented)")]
+    [EndpointSummary("Create a product with initial stock and a generated ID")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public IActionResult Create([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductResponse>> Create(
+        [FromBody] CreateProductRequest request,
+        [FromServices] IProductCommands commands,
+        CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var price = request.Price
+            ?? throw new InvalidOperationException("The request must be validated before creating a product.");
+        var stock = request.Stock
+            ?? throw new InvalidOperationException("The request must be validated before creating a product.");
+
+        var product = await commands.CreateAsync(
+            request.Name,
+            request.Description,
+            price,
+            stock,
+            cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 
     [HttpGet("{id:int}")]

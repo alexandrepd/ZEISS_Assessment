@@ -9,7 +9,6 @@ namespace ZEISS.ProductManagement.IntegrationTests;
 public sealed class ProductsApiTests
 {
     [Theory]
-    [InlineData("POST", "/api/products")]
     [InlineData("PUT", "/api/products/100005")]
     [InlineData("DELETE", "/api/products/100005")]
     [InlineData("POST", "/api/products/100005/decrement-stock/4")]
@@ -21,11 +20,7 @@ public sealed class ProductsApiTests
         await using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
-        if (method == "POST" && path == "/api/products")
-        {
-            request.Content = JsonContent.Create(new { name = "Lens", price = 1m, stock = 5 });
-        }
-        else if (method == "PUT")
+        if (method == "PUT")
         {
             request.Content = JsonContent.Create(new { name = "Lens", price = 1m });
         }
@@ -81,11 +76,16 @@ public sealed class ProductsApiTests
             {
                 var isImplementedGet = operation.Name == "get" &&
                     (path.Name == "/api/products" || path.Name == "/api/products/{id}");
+                var isCreate = operation.Name == "post" && path.Name == "/api/products";
                 var responses = operation.Value.GetProperty("responses");
-                Assert.Equal(!isImplementedGet, responses.TryGetProperty("501", out _));
+                Assert.Equal(!isImplementedGet && !isCreate, responses.TryGetProperty("501", out _));
                 if (isImplementedGet)
                 {
                     Assert.True(responses.TryGetProperty("200", out _));
+                }
+                if (isCreate)
+                {
+                    Assert.True(responses.TryGetProperty("201", out _));
                 }
             }
         }
