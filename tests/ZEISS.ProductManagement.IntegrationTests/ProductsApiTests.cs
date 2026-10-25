@@ -10,7 +10,6 @@ public sealed class ProductsApiTests
 {
     [Theory]
     [InlineData("POST", "/api/products")]
-    [InlineData("GET", "/api/products/100005")]
     [InlineData("PUT", "/api/products/100005")]
     [InlineData("DELETE", "/api/products/100005")]
     [InlineData("POST", "/api/products/100005/decrement-stock/4")]
@@ -80,15 +79,19 @@ public sealed class ProductsApiTests
         {
             foreach (var operation in path.Value.EnumerateObject())
             {
-                var isList = path.Name == "/api/products" && operation.Name == "get";
+                var isImplementedGet = operation.Name == "get" &&
+                    (path.Name == "/api/products" || path.Name == "/api/products/{id}");
                 var responses = operation.Value.GetProperty("responses");
-                Assert.Equal(!isList, responses.TryGetProperty("501", out _));
-                if (isList)
+                Assert.Equal(!isImplementedGet, responses.TryGetProperty("501", out _));
+                if (isImplementedGet)
                 {
                     Assert.True(responses.TryGetProperty("200", out _));
                 }
             }
         }
+
+        Assert.True(paths.GetProperty("/api/products/{id}").GetProperty("get")
+            .GetProperty("responses").TryGetProperty("404", out _));
 
         var schemas = document.GetProperty("components").GetProperty("schemas");
         Assert.True(schemas.GetProperty("ProductResponse").GetProperty("properties").TryGetProperty("stock", out _));
