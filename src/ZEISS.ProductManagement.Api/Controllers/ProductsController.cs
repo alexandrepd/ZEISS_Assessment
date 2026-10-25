@@ -63,13 +63,28 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Update name, description and price; never stock (not implemented)")]
+    [EndpointSummary("Update name, description and price; never stock")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public IActionResult Update(int id, [FromBody] UpdateProductRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductResponse>> Update(
+        int id, [FromBody] UpdateProductRequest request,
+        [FromServices] IProductCommands commands, CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var price = request.Price
+            ?? throw new InvalidOperationException("The request must be validated before updating a product.");
+        var product = await commands.UpdateAsync(
+            id, request.Name, request.Description, price, cancellationToken);
+        if (product is null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Product not found",
+                detail: "The requested product does not exist.");
+        }
+
+        return Ok(product);
     }
 
     [HttpDelete("{id:int}")]
