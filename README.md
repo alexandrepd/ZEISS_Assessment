@@ -27,14 +27,21 @@ reported as errors, never as an empty successful result.
 or `404 Not Found` with ProblemDetails when the integer ID does not match a product.
 Both reads use the same DTO projection and preserve UTC timestamps.
 
-The other seven routes are declared but not implemented. Requests with valid
+`POST /api/products` persists a product and returns `201 Created` with its generated
+six-digit ID, initial stock and a Location header pointing to the detail route.
+The ID is assigned by the shared SQL Server sequence, not by the request body.
+Invalid request DTOs return `400` before insertion. Database errors, including
+sequence exhaustion, currently return a safe `500` ProblemDetails response; the
+sequence never cycles back to reuse IDs.
+
+The other six routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-No product data is created, updated or deleted through the API. Routes are grouped in
+No product data is updated or deleted through the API yet. Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-For the seven reserved routes, OpenAPI lists intended success response schemas
+For the six reserved routes, OpenAPI lists intended success response schemas
 as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
 business operations and the remaining HTTP error contracts will be connected
 when the use cases are implemented.
@@ -103,3 +110,6 @@ accessible, but listing products returns a safe `500` ProblemDetails response.
 
 ListProductsTests verifies the HTTP list response against a separate disposable
 SQL Server database, including seed stock values and an empty table.
+
+CreateProductTests verifies creation, the Location resource, rejected input without
+insertion and unique IDs from concurrent requests across two API hosts sharing SQL Server.
