@@ -79,20 +79,32 @@ public sealed class ProductTests
         Assert.Equal("description", exception.ParamName);
     }
 
-    public static TheoryData<decimal> ValidPrices => new()
+    public static TheoryData<decimal> ValidPrices
     {
-        0.01m,
-        1.2300m,
-        9_999_999_999_999_999.99m
-    };
+        get
+        {
+            return new TheoryData<decimal>
+            {
+                0.01m,
+                1.2300m,
+                9_999_999_999_999_999.99m
+            };
+        }
+    }
 
-    public static TheoryData<decimal> InvalidPrices => new()
+    public static TheoryData<decimal> InvalidPrices
     {
-        0m,
-        -0.01m,
-        1.001m,
-        10_000_000_000_000_000m
-    };
+        get
+        {
+            return new TheoryData<decimal>
+            {
+                0m,
+                -0.01m,
+                1.001m,
+                10_000_000_000_000_000m
+            };
+        }
+    }
 
     [Theory]
     [MemberData(nameof(ValidPrices))]
