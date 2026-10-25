@@ -16,6 +16,28 @@ public sealed class Product
 
     public Product(string? name, string? description, decimal price, int stock)
     {
+        var normalizedName = ValidateDetails(name, description, price);
+        ArgumentOutOfRangeException.ThrowIfNegative(stock);
+
+        Name = normalizedName;
+        Description = description;
+        Price = price;
+        Stock = stock;
+        CreatedAtUtc = DateTime.UtcNow;
+    }
+
+    public void UpdateDetails(string? name, string? description, decimal price)
+    {
+        var normalizedName = ValidateDetails(name, description, price);
+
+        Name = normalizedName;
+        Description = description;
+        Price = price;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
+
+    private static string ValidateDetails(string? name, string? description, decimal price)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var normalizedName = name.Trim();
@@ -38,12 +60,6 @@ public sealed class Product
                 nameof(price), "Price must be positive, fit decimal(18,2), and have at most two decimal places.");
         }
 
-        ArgumentOutOfRangeException.ThrowIfNegative(stock);
-
-        Name = normalizedName;
-        Description = description;
-        Price = price;
-        Stock = stock;
-        CreatedAtUtc = DateTime.UtcNow;
+        return normalizedName;
     }
 }
