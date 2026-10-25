@@ -10,7 +10,10 @@ public sealed record UpdateProductRequest
     public string? Name
     {
         get;
-        init => field = value?.Trim();
+        init
+        {
+            field = value?.Trim();
+        }
     }
 
     [StringLength(Product.MaxDescriptionLength)]

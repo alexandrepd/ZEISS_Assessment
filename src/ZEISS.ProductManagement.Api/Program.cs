@@ -1,8 +1,19 @@
+using Microsoft.EntityFrameworkCore;
+using ZEISS.ProductManagement.Application.Products;
+using ZEISS.ProductManagement.Infrastructure.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
+builder.Services.AddDbContext<ProductDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("Products")
+        ?? throw new InvalidOperationException("ConnectionStrings:Products is required for database operations.");
+    options.UseSqlServer(connectionString);
+});
+builder.Services.AddScoped<IProductQueries, ProductQueries>();
 
 var app = builder.Build();
 

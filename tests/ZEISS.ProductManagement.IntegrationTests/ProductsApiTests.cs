@@ -9,7 +9,6 @@ namespace ZEISS.ProductManagement.IntegrationTests;
 public sealed class ProductsApiTests
 {
     [Theory]
-    [InlineData("GET", "/api/products")]
     [InlineData("POST", "/api/products")]
     [InlineData("GET", "/api/products/100005")]
     [InlineData("PUT", "/api/products/100005")]
@@ -67,7 +66,7 @@ public sealed class ProductsApiTests
     }
 
     [Fact]
-    public async Task Development_OpenApiDescribesNineReservedOperationsAndProductContracts()
+    public async Task Development_OpenApiDescribesNineOperationsAndProductContracts()
     {
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder => builder.UseEnvironment("Development"));
@@ -81,7 +80,13 @@ public sealed class ProductsApiTests
         {
             foreach (var operation in path.Value.EnumerateObject())
             {
-                Assert.True(operation.Value.GetProperty("responses").TryGetProperty("501", out _));
+                var isList = path.Name == "/api/products" && operation.Name == "get";
+                var responses = operation.Value.GetProperty("responses");
+                Assert.Equal(!isList, responses.TryGetProperty("501", out _));
+                if (isList)
+                {
+                    Assert.True(responses.TryGetProperty("200", out _));
+                }
             }
         }
 
