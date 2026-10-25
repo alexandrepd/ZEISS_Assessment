@@ -23,14 +23,18 @@ package, with assets served locally; no custom HTML page or CDN is required.
 including available stock. An empty table returns `[]`. Database failures are
 reported as errors, never as an empty successful result.
 
-The other eight routes are declared but not implemented. Requests with valid
+`GET /api/products/{id}` returns `200 OK` with the product and available stock,
+or `404 Not Found` with ProblemDetails when the integer ID does not match a product.
+Both reads use the same DTO projection and preserve UTC timestamps.
+
+The other seven routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
 No product data is created, updated or deleted through the API. Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-For the eight reserved routes, OpenAPI lists intended success response schemas
+For the seven reserved routes, OpenAPI lists intended success response schemas
 as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
 business operations and the remaining HTTP error contracts will be connected
 when the use cases are implemented.
