@@ -9,7 +9,6 @@ namespace ZEISS.ProductManagement.IntegrationTests;
 public sealed class ProductsApiTests
 {
     [Theory]
-    [InlineData("DELETE", "/api/products/100005")]
     [InlineData("POST", "/api/products/100005/decrement-stock/4")]
     [InlineData("POST", "/api/products/100005/add-to-stock/2")]
     [InlineData("GET", "/api/products/search?name=lens")]
@@ -73,8 +72,10 @@ public sealed class ProductsApiTests
                     (path.Name == "/api/products" || path.Name == "/api/products/{id}");
                 var isCreate = operation.Name == "post" && path.Name == "/api/products";
                 var isUpdate = operation.Name == "put" && path.Name == "/api/products/{id}";
+                var isDelete = operation.Name == "delete" && path.Name == "/api/products/{id}";
                 var responses = operation.Value.GetProperty("responses");
-                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate, responses.TryGetProperty("501", out _));
+                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate && !isDelete,
+                    responses.TryGetProperty("501", out _));
                 if (isImplementedGet || isUpdate)
                 {
                     Assert.True(responses.TryGetProperty("200", out _));
@@ -82,6 +83,11 @@ public sealed class ProductsApiTests
                 if (isCreate)
                 {
                     Assert.True(responses.TryGetProperty("201", out _));
+                }
+                if (isDelete)
+                {
+                    Assert.True(responses.TryGetProperty("204", out _));
+                    Assert.True(responses.TryGetProperty("404", out _));
                 }
             }
         }
