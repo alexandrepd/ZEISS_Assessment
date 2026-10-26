@@ -54,17 +54,21 @@ atomically adds a positive quantity without exceeding `int.MaxValue`. Both retur
 quantity, `404` for an unknown product and `409` when the operation conflicts with
 the current stock level or integer range.
 
-The other two routes are declared but not implemented. Requests with valid
-HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
-Routes are grouped in
-`ProductsController`; `[ApiController]` automatically rejects invalid creation/update
-DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
-incorrectly typed parameters can also be rejected before reaching an action.
+`GET /api/products/search?name={name}` searches for a partial product name without
+case sensitivity. The `name` query parameter is required and must not be blank.
+`GET /api/products/stock-level?min={min}&max={max}` returns products whose stock is
+within the inclusive range. Both limits are required, must be non-negative, and
+`max` must be greater than or equal to `min`. Both endpoints return `200 OK` with
+product responses including stock; no matches return `[]`. Invalid query parameters
+return `400` ValidationProblemDetails.
 
-For the two reserved search/filter routes, OpenAPI lists intended success response
-schemas as the future contract, not as currently available behavior. Search/filter
-validation, business operations and their HTTP error contracts will be connected
-when those use cases are implemented.
+All routes are implemented in `ProductsController`; `[ApiController]` automatically
+rejects invalid creation/update DTOs with `400 Bad Request` and ValidationProblemDetails.
+Malformed JSON or incorrectly typed parameters can also be rejected before reaching
+an action.
+
+Search by name and stock range are filtered in the SQL query before products are
+materialized, and results are ordered by ID.
 
 Creation accepts initial stock. Updates contain only name, description and price;
 subsequent stock changes belong to the dedicated stock endpoints.
@@ -125,8 +129,8 @@ dotnet run --project src/ZEISS.ProductManagement.Api --launch-profile http
 Then call `GET /api/products` in Swagger. The API does not automatically create
 the database or apply migrations on startup. `TrustServerCertificate=True` is
 for local development only; use a trusted server certificate for deployment.
-Without database configuration the documentation and reserved routes remain
-accessible, but listing products returns a safe `500` ProblemDetails response.
+Without database configuration the documentation and routes remain accessible,
+but database-backed requests return a safe `500` ProblemDetails response.
 
 ListProductsTests verifies the HTTP list response against a separate disposable
 SQL Server database, including seed stock values and an empty table.
