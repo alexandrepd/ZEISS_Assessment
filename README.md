@@ -47,17 +47,24 @@ updates use last-write-wins; this is not optimistic concurrency protection for m
 delete, returns `404` ProblemDetails. The delete is a single SQL statement filtered
 by primary key; it does not load the product first or reset the ID sequence.
 
-The other four routes are declared but not implemented. Requests with valid
+`POST /api/products/{id}/decrement-stock/{quantity}` atomically withdraws a positive
+quantity when enough stock is available. `POST /api/products/{id}/add-to-stock/{quantity}`
+atomically adds a positive quantity without exceeding `int.MaxValue`. Both return
+`200 OK` with the updated product and stock, `400` ProblemDetails for a non-positive
+quantity, `404` for an unknown product and `409` when the operation conflicts with
+the current stock level or integer range.
+
+The other two routes are declared but not implemented. Requests with valid
 HTTP binding and valid request DTOs return `501 Not Implemented` with ProblemDetails.
 Routes are grouped in
 `ProductsController`; `[ApiController]` automatically rejects invalid creation/update
 DTOs with `400 Bad Request` and ValidationProblemDetails. Malformed JSON or
 incorrectly typed parameters can also be rejected before reaching an action.
 
-For the four reserved routes, OpenAPI lists intended success response schemas
-as the future contract, not as currently available behavior. Stock-operation and search/filter validation,
-business operations and the remaining HTTP error contracts will be connected
-when the use cases are implemented.
+For the two reserved search/filter routes, OpenAPI lists intended success response
+schemas as the future contract, not as currently available behavior. Search/filter
+validation, business operations and their HTTP error contracts will be connected
+when those use cases are implemented.
 
 Creation accepts initial stock. Updates contain only name, description and price;
 subsequent stock changes belong to the dedicated stock endpoints.
