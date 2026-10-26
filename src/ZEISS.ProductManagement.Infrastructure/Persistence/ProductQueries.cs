@@ -26,6 +26,32 @@ public sealed class ProductQueries(ProductDbContext context) : IProductQueries
         return await projectedQuery.SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ProductResponse>> SearchByNameAsync(
+        string name, CancellationToken cancellationToken)
+    {
+        var query = context.Products
+            .Where(product => EF.Functions
+                .Collate(product.Name, "Latin1_General_100_CI_AS")
+                .Contains(name))
+            .OrderBy(product => product.Id);
+
+        var projectedQuery = ProjectProducts(query);
+
+        return await projectedQuery.ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ProductResponse>> ListByStockLevelAsync(
+        int min, int max, CancellationToken cancellationToken)
+    {
+        var query = context.Products
+            .Where(product => product.Stock >= min && product.Stock <= max)
+            .OrderBy(product => product.Id);
+
+        var projectedQuery = ProjectProducts(query);
+
+        return await projectedQuery.ToListAsync(cancellationToken);
+    }
+
     private static IQueryable<ProductResponse> ProjectProducts(IQueryable<Product> products)
     {
         return products.AsNoTracking()
