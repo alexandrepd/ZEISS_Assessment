@@ -143,29 +143,43 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpGet("search")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Search products by partial name (not implemented)")]
+    [EndpointSummary("Search products by partial, case-insensitive name")]
     [ProducesResponseType<ProductResponse[]>(StatusCodes.Status200OK)]
-    public IActionResult Search([FromQuery] string? name, CancellationToken cancellationToken)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<ProductResponse>>> Search(
+        [FromQuery, Required] string name,
+        [FromServices] IProductQueries queries,
+        CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var products = await queries.SearchByNameAsync(name.Trim(), cancellationToken);
+        return Ok(products);
     }
 
     [HttpGet("stock-level")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Filter products by stock range (not implemented)")]
+    [EndpointSummary("Filter products by an inclusive stock range")]
     [ProducesResponseType<ProductResponse[]>(StatusCodes.Status200OK)]
-    public IActionResult GetByStockLevel([FromQuery] int? min, [FromQuery] int? max, CancellationToken cancellationToken)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<ProductResponse>>> GetByStockLevel(
+        [FromQuery, Required, Range(0, int.MaxValue)] int? min,
+        [FromQuery, Required, Range(0, int.MaxValue)] int? max,
+        [FromServices] IProductQueries queries,
+        CancellationToken cancellationToken)
     {
-        return NotImplemented();
-    }
+        var minimum = min
+            ?? throw new InvalidOperationException("The request must be validated before filtering products.");
+        var maximum = max
+            ?? throw new InvalidOperationException("The request must be validated before filtering products.");
 
-    private ObjectResult NotImplemented()
-    {
-        return Problem(
-            statusCode: StatusCodes.Status501NotImplemented,
-            title: "Not implemented",
-            detail: "This endpoint is reserved and is not implemented yet.");
+        if (minimum > maximum)
+        {
+            ModelState.AddModelError(nameof(max), "Maximum stock must be greater than or equal to minimum stock.");
+            return ValidationProblem(ModelState);
+        }
+
+        var products = await queries.ListByStockLevelAsync(minimum, maximum, cancellationToken);
+        return Ok(products);
     }
 
     private ActionResult<ProductResponse> CreateStockUpdateResponse(ProductStockUpdateResult result)
