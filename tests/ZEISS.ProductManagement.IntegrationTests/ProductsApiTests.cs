@@ -9,8 +9,6 @@ namespace ZEISS.ProductManagement.IntegrationTests;
 public sealed class ProductsApiTests
 {
     [Theory]
-    [InlineData("POST", "/api/products/100005/decrement-stock/4")]
-    [InlineData("POST", "/api/products/100005/add-to-stock/2")]
     [InlineData("GET", "/api/products/search?name=lens")]
     [InlineData("GET", "/api/products/stock-level?min=0&max=10")]
     public async Task ReservedRoute_ReturnsNotImplementedProblem(string method, string path)
@@ -73,10 +71,13 @@ public sealed class ProductsApiTests
                 var isCreate = operation.Name == "post" && path.Name == "/api/products";
                 var isUpdate = operation.Name == "put" && path.Name == "/api/products/{id}";
                 var isDelete = operation.Name == "delete" && path.Name == "/api/products/{id}";
+                var isStockOperation = operation.Name == "post" &&
+                    (path.Name == "/api/products/{id}/decrement-stock/{quantity}" ||
+                     path.Name == "/api/products/{id}/add-to-stock/{quantity}");
                 var responses = operation.Value.GetProperty("responses");
-                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate && !isDelete,
+                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate && !isDelete && !isStockOperation,
                     responses.TryGetProperty("501", out _));
-                if (isImplementedGet || isUpdate)
+                if (isImplementedGet || isUpdate || isStockOperation)
                 {
                     Assert.True(responses.TryGetProperty("200", out _));
                 }
@@ -88,6 +89,12 @@ public sealed class ProductsApiTests
                 {
                     Assert.True(responses.TryGetProperty("204", out _));
                     Assert.True(responses.TryGetProperty("404", out _));
+                }
+                if (isStockOperation)
+                {
+                    Assert.True(responses.TryGetProperty("400", out _));
+                    Assert.True(responses.TryGetProperty("404", out _));
+                    Assert.True(responses.TryGetProperty("409", out _));
                 }
             }
         }
