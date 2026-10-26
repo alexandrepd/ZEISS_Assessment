@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using ZEISS.ProductManagement.Application.Products;
 
 namespace ZEISS.ProductManagement.Api.Controllers;
@@ -108,21 +109,37 @@ public sealed class ProductsController : ControllerBase
     }
 
     [HttpPost("{id:int}/decrement-stock/{quantity:int}")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Withdraw stock (not implemented)")]
+    [EndpointSummary("Withdraw available stock from a product")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
-    public IActionResult DecrementStock(int id, int quantity, CancellationToken cancellationToken)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductResponse>> DecrementStock(
+        int id,
+        [Range(1, int.MaxValue)] int quantity,
+        [FromServices] IProductCommands commands,
+        CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var result = await commands.DecrementStockAsync(id, quantity, cancellationToken);
+        return CreateStockUpdateResponse(result);
     }
 
     [HttpPost("{id:int}/add-to-stock/{quantity:int}")]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status501NotImplemented)]
-    [EndpointSummary("Add stock (not implemented)")]
+    [EndpointSummary("Add available stock to a product")]
     [ProducesResponseType<ProductResponse>(StatusCodes.Status200OK)]
-    public IActionResult AddStock(int id, int quantity, CancellationToken cancellationToken)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductResponse>> AddStock(
+        int id,
+        [Range(1, int.MaxValue)] int quantity,
+        [FromServices] IProductCommands commands,
+        CancellationToken cancellationToken)
     {
-        return NotImplemented();
+        var result = await commands.AddToStockAsync(id, quantity, cancellationToken);
+        return CreateStockUpdateResponse(result);
     }
 
     [HttpGet("search")]
@@ -148,6 +165,32 @@ public sealed class ProductsController : ControllerBase
         return Problem(
             statusCode: StatusCodes.Status501NotImplemented,
             title: "Not implemented",
-            detail: "This endpoint is reserved. Product use cases and persistence are not implemented yet.");
+            detail: "This endpoint is reserved and is not implemented yet.");
+    }
+
+    private ActionResult<ProductResponse> CreateStockUpdateResponse(ProductStockUpdateResult result)
+    {
+        if (result.Status == ProductStockUpdateStatus.ProductNotFound)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Product not found",
+                detail: "The requested product does not exist.");
+        }
+
+        if (result.Status == ProductStockUpdateStatus.Conflict)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Stock conflict",
+                detail: "The stock operation cannot be completed with the current stock level.");
+        }
+
+        if (result.Product is null)
+        {
+            throw new InvalidOperationException("A successful stock update must return the product.");
+        }
+
+        return Ok(result.Product);
     }
 }
