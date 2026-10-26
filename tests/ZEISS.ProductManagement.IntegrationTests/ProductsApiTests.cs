@@ -9,24 +9,6 @@ namespace ZEISS.ProductManagement.IntegrationTests;
 public sealed class ProductsApiTests
 {
     [Theory]
-    [InlineData("GET", "/api/products/search?name=lens")]
-    [InlineData("GET", "/api/products/stock-level?min=0&max=10")]
-    public async Task ReservedRoute_ReturnsNotImplementedProblem(string method, string path)
-    {
-        await using var factory = new WebApplicationFactory<Program>();
-        using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(new HttpMethod(method), path);
-
-        using var response = await client.SendAsync(request);
-
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
-        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(501, problem.GetProperty("status").GetInt32());
-        Assert.Equal("Not implemented", problem.GetProperty("title").GetString());
-    }
-
-    [Theory]
     [InlineData("POST", "/api/products", "{}", "Name")]
     [InlineData("POST", "/api/products", """{"name":"Lens","price":1}""", "Stock")]
     [InlineData("POST", "/api/products", """{"name":"Lens","price":1.001,"stock":0}""", "Price")]
@@ -74,10 +56,13 @@ public sealed class ProductsApiTests
                 var isStockOperation = operation.Name == "post" &&
                     (path.Name == "/api/products/{id}/decrement-stock/{quantity}" ||
                      path.Name == "/api/products/{id}/add-to-stock/{quantity}");
+                var isProductSearch = operation.Name == "get" && path.Name == "/api/products/search";
+                var isStockLevel = operation.Name == "get" && path.Name == "/api/products/stock-level";
                 var responses = operation.Value.GetProperty("responses");
-                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate && !isDelete && !isStockOperation,
+                Assert.Equal(!isImplementedGet && !isCreate && !isUpdate && !isDelete &&
+                    !isStockOperation && !isProductSearch && !isStockLevel,
                     responses.TryGetProperty("501", out _));
-                if (isImplementedGet || isUpdate || isStockOperation)
+                if (isImplementedGet || isUpdate || isStockOperation || isProductSearch || isStockLevel)
                 {
                     Assert.True(responses.TryGetProperty("200", out _));
                 }
@@ -95,6 +80,10 @@ public sealed class ProductsApiTests
                     Assert.True(responses.TryGetProperty("400", out _));
                     Assert.True(responses.TryGetProperty("404", out _));
                     Assert.True(responses.TryGetProperty("409", out _));
+                }
+                if (isProductSearch || isStockLevel)
+                {
+                    Assert.True(responses.TryGetProperty("400", out _));
                 }
             }
         }
