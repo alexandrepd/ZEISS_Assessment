@@ -1,0 +1,52 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-LocalDev_Passw0rd!}
+    ports:
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrations
+    environment:
+      ConnectionStrings__Products: Server=sqlserver,1433;Database=ZeissProducts;User Id=sa;Password=${MSSQL_SA_PASSWORD:-LocalDev_Passw0rd!};Encrypt=True;TrustServerCertificate=True
+    command:
+      - sh
+      - -c
+      - dotnet ef database update --project src/ZEISS.ProductManagement.Infrastructure --connection "$$ConnectionStrings__Products"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Products: Server=sqlserver,1433;Database=ZeissProducts;User Id=sa;Password=${MSSQL_SA_PASSWORD:-LocalDev_Passw0rd!};Encrypt=True;TrustServerCertificate=True
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  sqlserver-data:
