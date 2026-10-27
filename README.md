@@ -172,7 +172,7 @@ Use a running SQL Server instance and set the connection string in your local
 shell (replace the example values; do not commit your actual credentials):
 
 ```sh
-export ConnectionStrings__Products='Server=localhost,1433;Database=ZeissProducts;User Id=sa;Password=YOUR_LOCAL_PASSWORD;Encrypt=True;TrustServerCertificate=True'
+export ConnectionStrings__Products='Server=localhost,1433;Database=ZeissProducts;User Id=sa;Password=YOUR_PASSWORD;Encrypt=True;TrustServerCertificate=True'
 dotnet tool restore
 dotnet ef database update --project src/ZEISS.ProductManagement.Infrastructure --connection "$ConnectionStrings__Products"
 dotnet run --project src/ZEISS.ProductManagement.Api --launch-profile http
